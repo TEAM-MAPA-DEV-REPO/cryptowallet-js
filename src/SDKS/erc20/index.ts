@@ -24,6 +24,7 @@ import { KeyPair } from '../GenericSDK.d';
 import * as IERC20SDK from './IERC20SDK';
 import ERC20JSON from './erc20';
 import * as Networks from '../networks';
+import BigNumber from 'bignumber.js';
 
 interface ApiInfo {
   provider: string,
@@ -107,7 +108,8 @@ export namespace CryptoWallet.SDKS.ERC20 {
       const provider = this.api ? this.api.provider : this.networks[network].provider;
       const web3: any = new this.Web3(provider);
       const contract = new web3.eth.Contract(this.json, erc20Wallet.contract);
-      const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      // const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      const sendAmount: string = new BigNumber((amount * (10 ** erc20Wallet.decimals)).toString()).toFixed();
       return new Promise(async (resolve, reject) => {
         contract.methods.transfer(to, sendAmount).estimateGas(
           { from: erc20Wallet.address },
@@ -134,7 +136,8 @@ export namespace CryptoWallet.SDKS.ERC20 {
     ): Object {
       const web3: any = new this.Web3(erc20Wallet.network.provider);
       const contract = new web3.eth.Contract(this.json, erc20Wallet.contract);
-      const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      // const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      const sendAmount: string = new BigNumber((amount * (10 ** erc20Wallet.decimals)).toString()).toFixed();
       const method = contract.methods.transfer(to, sendAmount).encodeABI();
       return this.createTx(erc20Wallet, keypair, method, gasPrice, to, amount);
     }
@@ -154,7 +157,8 @@ export namespace CryptoWallet.SDKS.ERC20 {
     ): Object {
       const web3: any = new this.Web3(erc20Wallet.network.provider);
       const contract = new web3.eth.Contract(this.json, erc20Wallet.contract);
-      const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      // const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      const sendAmount: string = new BigNumber((amount * (10 ** erc20Wallet.decimals)).toString()).toFixed();
       const method = contract.methods.approve(to, sendAmount).encodeABI();
       return this.createTx(erc20Wallet, keypair, method, gasPrice);
     }
@@ -177,7 +181,8 @@ export namespace CryptoWallet.SDKS.ERC20 {
         const contract = new web3.eth.Contract(this.json, erc20Wallet.contract);
         const check: number = await this.checkAllowance(erc20Wallet, from);
         if (check >= amount) {
-          const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+          // const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+          const sendAmount: string = new BigNumber((amount * (10 ** erc20Wallet.decimals)).toString()).toFixed();
           const method = contract.methods.transferFrom(
             from, erc20Wallet.address, sendAmount,
           ).encodeABI();
@@ -304,7 +309,6 @@ export namespace CryptoWallet.SDKS.ERC20 {
                 sender: r.from,
                 confirmedTime: r.timeStamp,
                 confirmations: r.confirmations,
-                failed: r.isError === 1,
               };
 
               transactions.push(transaction);
