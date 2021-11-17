@@ -335,6 +335,8 @@ export namespace CryptoWallet.SDKS.ERC20 {
       const web3 = new this.Web3(erc20Wallet.network.provider);
       return new Promise(async (resolve, reject) => {
         const nonce = await web3.eth.getTransactionCount(erc20Wallet.address);
+        const pendingNonce = await web3.eth.getTransactionCount(erc20Wallet.address, 'pending');
+        console.log("erc20, nonce 체크...", nonce, pendingNonce);
         const gas = gasPrice.toString();
         const gasLimit = 100000;
         let estimatedGas = gasLimit;
@@ -346,7 +348,8 @@ export namespace CryptoWallet.SDKS.ERC20 {
           }
         }
         const tx = new this.Tx({
-          nonce,
+          // nonce: pendingNonce > nonce? pendingNonce + 1: nonce + 1,
+          nonce: nonce,
           gasPrice: web3.utils.toHex(gas),
           gasLimit: web3.utils.toHex(gasLimit),
           to: erc20Wallet.contract,

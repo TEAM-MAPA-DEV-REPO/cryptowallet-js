@@ -170,10 +170,13 @@ export namespace CryptoWallet.SDKS.Ethereum {
       const web3: any = new this.Web3(keypair.network.provider);
       return new Promise(async (resolve, reject) => {
         const nonce = await web3.eth.getTransactionCount(keypair.address);
+        const pendingNonce = await web3.eth.getTransactionCount(keypair.address, 'pending');
+        console.log("eth, nonce 체크...", nonce, pendingNonce);
         const sendAmount: string = amount.toString();
         const gasAmount: string = gasPrice.toString();
         const tx: any = new EthereumTx({
-          nonce,
+          // nonce: pendingNonce > nonce? pendingNonce + 1: nonce + 1,
+          nonce: nonce,
           gasPrice: web3.utils.toHex(gasAmount),
           gasLimit: web3.utils.toHex(gasLimit),
           to: toAddress,
