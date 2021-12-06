@@ -162,6 +162,7 @@ export namespace CryptoWallet.SDKS.Ethereum {
       keypair: KeyPair,
       toAddress: string,
       amount: number,
+      _nonce: number,
       gasPrice: number,
       gasLimit: number = 25000,
     ): Object {
@@ -170,10 +171,13 @@ export namespace CryptoWallet.SDKS.Ethereum {
       const web3: any = new this.Web3(keypair.network.provider);
       return new Promise(async (resolve, reject) => {
         const nonce = await web3.eth.getTransactionCount(keypair.address);
+        const pendingNonce = await web3.eth.getTransactionCount(keypair.address, 'pending');
+        console.log("eth, nonce 체크...", _nonce, nonce, pendingNonce);
         const sendAmount: string = amount.toString();
         const gasAmount: string = gasPrice.toString();
         const tx: any = new EthereumTx({
-          nonce,
+          // nonce: pendingNonce > nonce? pendingNonce + 1: nonce + 1,
+          nonce: _nonce? _nonce : nonce,
           gasPrice: web3.utils.toHex(gasAmount),
           gasLimit: web3.utils.toHex(gasLimit),
           to: toAddress,
@@ -303,6 +307,7 @@ export namespace CryptoWallet.SDKS.Ethereum {
                 receivedTime: r.timeStamp,
                 confirmedTime: r.timeStamp,
                 confirmations: r.confirmations,
+                failed: r.isError === 1,
               };
 
               transactions.push(transaction);
@@ -338,26 +343,30 @@ export namespace CryptoWallet.SDKS.Ethereum {
       const url = `${this.api.etherscan}/?module=account&action=tokentx&address=${address}&sort=desc` + (this.api.etherscan ? `&apikey=${this.api.etherscanKey}` : null);
       const request = await this.axios.get(url);
       const txs = request.data.result;
-      return txs.map((tx: any) => {
-        return {
-          sent: tx.from === address.toLowerCase(),
-          receiver: tx.to,
-          confirmed: tx.confirmations > 11,
-          hash: tx.hash,
-          blockHeight: tx.blockNumber,
-          gasPrice: tx.gasPrice,
-          gasLimit: tx.gasLimit,
-          gasUsed: tx.gasUsed,
-          value: tx.value / (10 ** tx.tokenDecimal),
-          sender: tx.from,
-          confirmedTime: tx.timeStamp,
-          confirmations: tx.confirmations,
-          tokenName: tx.tokenName,
-          tokenSymbol: tx.tokenSymbol,
-          tokenDecimal: tx.tokenDecimal,
-          contractAddress: tx.contractAddress,
-        }
-      })
+      return txs.filter((tx: any) => {
+                      return tx.tokenName;
+                    })
+                    .map((tx: any) => {
+                        return {
+                            sent: tx.from === address.toLowerCase(),
+                            receiver: tx.to,
+                            confirmed: tx.confirmations > 11,
+                            hash: tx.hash,
+                            blockHeight: tx.blockNumber,
+                            gasPrice: tx.gasPrice,
+                            gasLimit: tx.gasLimit,
+                            gasUsed: tx.gasUsed,
+                            value: tx.value / (10 ** tx.tokenDecimal),
+                            sender: tx.from,
+                            confirmedTime: tx.timeStamp,
+                            confirmations: tx.confirmations,
+                            tokenName: tx.tokenName,
+                            tokenSymbol: tx.tokenSymbol,
+                            tokenDecimal: tx.tokenDecimal,
+                            contractAddress: tx.contractAddress,
+                            failed: tx.isError === 1,
+                        };
+                    });
     }
 
     /**
@@ -402,7 +411,21 @@ export namespace CryptoWallet.SDKS.Ethereum {
         return resolve(balance / weiMultiplier);
       });
     }
-
+    /**
+     * Gets current nonce
+     * @param keypair
+    */
+    getNonce(keypair: KeyPair): Object {
+      const web3 = new this.Web3(keypair.network.provider);
+      return new Promise(async (resolve, reject) => {
+        const nonce = await web3.eth.getTransactionCount(keypair.address);
+        const pendingNonce = await web3.eth.getTransactionCount(keypair.address, 'pending');
+        return resolve({
+            nonce, 
+            pendingNonce,
+        });
+      })
+    }
     /**
      * Generates the first 10 accounts of an ethereum wallet
      * @param entropy

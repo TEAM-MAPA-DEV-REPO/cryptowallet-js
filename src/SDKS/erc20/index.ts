@@ -24,6 +24,7 @@ import { KeyPair } from '../GenericSDK.d';
 import * as IERC20SDK from './IERC20SDK';
 import ERC20JSON from './erc20';
 import * as Networks from '../networks';
+import BigNumber from 'bignumber.js';
 
 interface ApiInfo {
   provider: string,
@@ -107,7 +108,8 @@ export namespace CryptoWallet.SDKS.ERC20 {
       const provider = this.api ? this.api.provider : this.networks[network].provider;
       const web3: any = new this.Web3(provider);
       const contract = new web3.eth.Contract(this.json, erc20Wallet.contract);
-      const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      // const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      const sendAmount: string = new BigNumber((amount * (10 ** erc20Wallet.decimals)).toString()).toFixed();
       return new Promise(async (resolve, reject) => {
         contract.methods.transfer(to, sendAmount).estimateGas(
           { from: erc20Wallet.address },
@@ -130,13 +132,15 @@ export namespace CryptoWallet.SDKS.ERC20 {
       keypair: KeyPair,
       to: string,
       amount: number,
+      _nonce: number,
       gasPrice: number,
     ): Object {
       const web3: any = new this.Web3(erc20Wallet.network.provider);
       const contract = new web3.eth.Contract(this.json, erc20Wallet.contract);
-      const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      // const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      const sendAmount: string = new BigNumber((amount * (10 ** erc20Wallet.decimals)).toString()).toFixed();
       const method = contract.methods.transfer(to, sendAmount).encodeABI();
-      return this.createTx(erc20Wallet, keypair, method, gasPrice, to, amount);
+      return this.createTx(erc20Wallet, keypair, method, gasPrice, _nonce, to, amount);
     }
 
     /**
@@ -154,7 +158,8 @@ export namespace CryptoWallet.SDKS.ERC20 {
     ): Object {
       const web3: any = new this.Web3(erc20Wallet.network.provider);
       const contract = new web3.eth.Contract(this.json, erc20Wallet.contract);
-      const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      // const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+      const sendAmount: string = new BigNumber((amount * (10 ** erc20Wallet.decimals)).toString()).toFixed();
       const method = contract.methods.approve(to, sendAmount).encodeABI();
       return this.createTx(erc20Wallet, keypair, method, gasPrice);
     }
@@ -177,7 +182,8 @@ export namespace CryptoWallet.SDKS.ERC20 {
         const contract = new web3.eth.Contract(this.json, erc20Wallet.contract);
         const check: number = await this.checkAllowance(erc20Wallet, from);
         if (check >= amount) {
-          const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+          // const sendAmount: string = (amount * (10 ** erc20Wallet.decimals)).toString();
+          const sendAmount: string = new BigNumber((amount * (10 ** erc20Wallet.decimals)).toString()).toFixed();
           const method = contract.methods.transferFrom(
             from, erc20Wallet.address, sendAmount,
           ).encodeABI();
@@ -324,12 +330,15 @@ export namespace CryptoWallet.SDKS.ERC20 {
       keypair: KeyPair,
       method: any,
       gasPrice: number,
+      _nonce?: number,
       to?: string,
       amount?: number,
     ): Object {
       const web3 = new this.Web3(erc20Wallet.network.provider);
       return new Promise(async (resolve, reject) => {
         const nonce = await web3.eth.getTransactionCount(erc20Wallet.address);
+        const pendingNonce = await web3.eth.getTransactionCount(erc20Wallet.address, 'pending');
+        console.log("erc20, nonce 체크...", _nonce, nonce, pendingNonce);
         const gas = gasPrice.toString();
         const gasLimit = 100000;
         let estimatedGas = gasLimit;
@@ -341,7 +350,8 @@ export namespace CryptoWallet.SDKS.ERC20 {
           }
         }
         const tx = new this.Tx({
-          nonce,
+          // nonce: pendingNonce > nonce? pendingNonce + 1: nonce + 1,
+          nonce: _nonce? _nonce : nonce,
           gasPrice: web3.utils.toHex(gas),
           gasLimit: web3.utils.toHex(gasLimit),
           to: erc20Wallet.contract,
@@ -374,6 +384,21 @@ export namespace CryptoWallet.SDKS.ERC20 {
           transaction,
         });
       });
+    }
+    /**
+     * Gets current nonce
+     * @param keypair
+    */
+     getNonce(keypair: KeyPair): Object {
+      const web3 = new this.Web3(keypair.network.provider);
+      return new Promise(async (resolve, reject) => {
+        const nonce = await web3.eth.getTransactionCount(keypair.address);
+        const pendingNonce = await web3.eth.getTransactionCount(keypair.address, 'pending');
+        return resolve({
+            nonce, 
+            pendingNonce,
+        });
+      })
     }
   }
 }

@@ -32,6 +32,7 @@ export namespace CryptoWallet.SDKS.Erc20 {
       keypair: any,
       to: string,
       amount: number,
+      _nonce: number,
       gasPrice: number
     ): Object;
 

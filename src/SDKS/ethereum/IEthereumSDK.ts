@@ -25,6 +25,7 @@ export namespace CryptoWallet.SDKS.Ethereum {
       keypair: KeyPair,
       toAddress: string,
       amount: number,
+      _nonce: number,
       gasPrice: number,
     ): Object;
 
